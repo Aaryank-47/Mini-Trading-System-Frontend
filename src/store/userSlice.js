@@ -1,11 +1,9 @@
 import { createSlice } from '@reduxjs/toolkit'
 
-const savedUser = localStorage.getItem('tradeSysUser')
-
 const userSlice = createSlice({
   name: 'user',
   initialState: {
-    currentUser: savedUser ? JSON.parse(savedUser) : null,
+    currentUser: null,
     users: [],
     loading: false,
     error: null,
@@ -13,14 +11,12 @@ const userSlice = createSlice({
   reducers: {
     setCurrentUser: (state, action) => {
       state.currentUser = action.payload
-      localStorage.setItem('tradeSysUser', JSON.stringify(action.payload))
     },
     setUsers: (state, action) => {
       state.users = action.payload
     },
     clearUser: (state) => {
       state.currentUser = null
-      localStorage.removeItem('tradeSysUser')
     },
     setLoading: (state, action) => {
       state.loading = action.payload

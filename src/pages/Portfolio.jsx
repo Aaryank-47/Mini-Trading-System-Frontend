@@ -6,8 +6,11 @@ import api from '../api'
 import { ArrowUpRight, ArrowDownRight, PieChart, Activity, Wallet, TrendingUp, Search, SlidersHorizontal } from 'lucide-react'
 import { AreaChart, Area, ResponsiveContainer, Tooltip as RechartsTooltip } from 'recharts'
 
-const formatCurrency = (n) => new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(n || 0)
-const fmtPct = (p) => (p >= 0 ? '+' : '') + (p || 0).toFixed(2) + '%'
+const formatCurrency = (n) => new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(Number(n || 0))
+const fmtPct = (p) => {
+  const val = Number(p || 0);
+  return (val >= 0 ? '+' : '') + val.toFixed(2) + '%'
+}
 
 const getCoinColor = (sym) => {
   if (!sym) return 'bg-[rgba(255,255,255,0.05)] text-white border-[rgba(255,255,255,0.1)]';
@@ -54,21 +57,24 @@ export default function Portfolio() {
     return () => clearInterval(iv)
   }, [user, dispatch])
 
+  const pnl = portfolio?.total_unrealized_pnl || 0
+  const pnlUp = pnl >= 0
+  const currentVal = portfolio?.total_portfolio_value || 0;
+
+  const displayTimeline = useMemo(() => {
+    const data = [...growthTimeline];
+    if (currentVal > 0) {
+      data[data.length - 1] = { ...data[data.length - 1], val: currentVal };
+    }
+    return data;
+  }, [currentVal]);
+
   if (loading) {
     return (
       <div className="min-h-screen w-full flex items-center justify-center relative bg-[#050505]">
         <Activity className="text-[#06B6D4] animate-spin" size={48} />
       </div>
     )
-  }
-
-  const pnl = portfolio?.total_unrealized_pnl || 0
-  const pnlUp = pnl >= 0
-  
-  // Set real portfolio value if available to chart
-  const currentVal = portfolio?.total_portfolio_value || 0;
-  if(currentVal > 0) {
-     growthTimeline[growthTimeline.length -1].val = currentVal;
   }
 
   return (
@@ -180,7 +186,7 @@ export default function Portfolio() {
              </div>
              <div className="flex-1 w-full relative z-10 min-h-[220px]">
                 <ResponsiveContainer width="100%" height="100%">
-                  <AreaChart data={growthTimeline}>
+                  <AreaChart data={displayTimeline}>
                     <defs>
                       <linearGradient id="cyanGrad" x1="0" y1="0" x2="0" y2="1">
                         <stop offset="0%" stopColor="#06B6D4" stopOpacity={0.5}/>

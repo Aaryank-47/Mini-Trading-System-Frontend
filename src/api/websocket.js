@@ -1,4 +1,9 @@
-const WS_BASE = 'ws://localhost:8000'
+import { getAccessToken } from '../services/apiClient';
+
+const isLocal = window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1";
+const WS_BASE = isLocal 
+  ? 'ws://localhost:8000' 
+  : 'wss://mini-trading-system-backend.onrender.com';
 
 class WebSocketManager {
   constructor() {
@@ -21,7 +26,9 @@ class WebSocketManager {
     this.isConnecting = true
 
     try {
-      this.ws = new WebSocket(`${WS_BASE}/ws/${userId}`)
+      const token = getAccessToken();
+      const wsUrl = token ? `${WS_BASE}/ws/${userId}?token=${token}` : `${WS_BASE}/ws/${userId}`;
+      this.ws = new WebSocket(wsUrl)
 
       this.ws.onopen = () => {
         console.log(`[WS] Connected for user ${userId}`)

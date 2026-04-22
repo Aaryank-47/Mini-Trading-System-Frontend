@@ -1,96 +1,76 @@
-const API_BASE = "https://mini-trading-system-backend.onrender.com";
+import apiClient from '../services/apiClient';
 
 const api = {
-  // ── Users ──────────────────────────────────
+  // ── Auth & Users ─────────────────────────────
   createUser: async (data) => {
-    const res = await fetch(`${API_BASE}/users`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(data),
-    });
-    if (!res.ok) {
-      const err = await res.json();
-      throw new Error(err.detail || "Failed to create user");
-    }
-    return res.json();
+    const res = await apiClient.post(`/users/register`, data);
+    return res.data;
+  },
+
+  login: async (data) => {
+    const res = await apiClient.post(`/users/login`, data);
+    // console.log("response from login : ", res);
+    console.log("data from login : ", res.data);
+    return res.data;
   },
 
   getUser: async (userId) => {
-    const res = await fetch(`${API_BASE}/users/${userId}`);
-    if (!res.ok) throw new Error("User not found");
-    return res.json();
+    const res = await apiClient.get(`/users/${userId}`);
+    return res.data;
   },
 
   getAllUsers: async (skip = 0, limit = 100) => {
-    const res = await fetch(`${API_BASE}/users?skip=${skip}&limit=${limit}`);
-    if (!res.ok) throw new Error("Failed to fetch users");
-    return res.json();
+    const res = await apiClient.get(`/users?skip=${skip}&limit=${limit}`);
+    return res.data;
   },
 
   // ── Market ─────────────────────────────────
   getPrices: async () => {
-    const res = await fetch(`${API_BASE}/market/prices`);
-    if (!res.ok) throw new Error("Failed to fetch prices");
-    return res.json();
+    const res = await apiClient.get(`/market/prices`);
+    return res.data;
   },
 
   getSymbolPrice: async (symbol) => {
-    const res = await fetch(`${API_BASE}/market/price/${symbol}`);
-    if (!res.ok) throw new Error(`Price not found for ${symbol}`);
-    return res.json();
+    const res = await apiClient.get(`/market/price/${symbol}`);
+    return res.data;
   },
 
   // ── Orders ─────────────────────────────────
   placeOrder: async (data) => {
-    const res = await fetch(`${API_BASE}/orders`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(data),
-    });
-    if (!res.ok) {
-      const err = await res.json();
-      throw new Error(err.detail || "Order failed");
-    }
-    return res.json();
+    const res = await apiClient.post(`/orders`, data);
+    return res.data;
   },
 
   getOrderHistory: async (userId, skip = 0, limit = 50) => {
-    const res = await fetch(
-      `${API_BASE}/orders/${userId}?skip=${skip}&limit=${limit}`,
-    );
-    if (!res.ok) throw new Error("Failed to fetch orders");
-    return res.json();
+    const res = await apiClient.get(`/orders/${userId}?skip=${skip}&limit=${limit}`);
+    return res.data;
   },
 
   getOrderCount: async (userId) => {
-    const res = await fetch(`${API_BASE}/orders/${userId}/count`);
-    if (!res.ok) throw new Error("Failed to fetch order count");
-    return res.json();
+    const res = await apiClient.get(`/orders/${userId}/count`);
+    return res.data;
   },
 
   // ── Portfolio ──────────────────────────────
   getPortfolio: async (userId) => {
-    const res = await fetch(`${API_BASE}/portfolio/${userId}`);
-    if (!res.ok) throw new Error("Failed to fetch portfolio");
-    return res.json();
+    const res = await apiClient.get(`/portfolio/${userId}`);
+    return res.data;
   },
 
   getPositions: async (userId) => {
-    const res = await fetch(`${API_BASE}/portfolio/${userId}/positions`);
-    if (!res.ok) throw new Error("Failed to fetch positions");
-    return res.json();
+    const res = await apiClient.get(`/portfolio/${userId}/positions`);
+    return res.data;
   },
 
   getBalance: async (userId) => {
-    const res = await fetch(`${API_BASE}/portfolio/${userId}/balance`);
-    if (!res.ok) throw new Error("Failed to fetch balance");
-    return res.json();
+    const res = await apiClient.get(`/portfolio/${userId}/balance`);
+    return res.data;
   },
 
   // ── Health ─────────────────────────────────
   healthCheck: async () => {
-    const res = await fetch(`${API_BASE}/health`);
-    return res.json();
+    const res = await apiClient.get(`/health`);
+    return res.data;
   },
 };
 

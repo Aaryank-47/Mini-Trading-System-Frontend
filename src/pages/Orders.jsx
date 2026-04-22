@@ -5,7 +5,7 @@ import api from '../api'
 import { Clock, TrendingUp, TrendingDown, Search, Filter, Activity, BarChart2 } from 'lucide-react'
 import { AreaChart, Area, ResponsiveContainer, Tooltip as RechartsTooltip } from 'recharts'
 
-const formatCurrency = (n) => new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(n || 0)
+const formatCurrency = (n) => new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(Number(n || 0))
 
 // Quick mocked timeline for the header chart to look super premium
 const volumeTimeline = [

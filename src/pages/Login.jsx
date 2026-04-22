@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { useDispatch } from "react-redux";
 import { setCurrentUser } from "../store/userSlice";
-import api from "../api";
+import { useAuth } from "../context/AuthContext";
 import toast from "react-hot-toast";
 import {
   Zap,
@@ -14,6 +14,8 @@ import {
   TerminalSquare,
   Cpu,
   Globe2,
+  Eye,
+  EyeOff,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 
@@ -38,19 +40,25 @@ export default function Login() {
   const [mode, setMode] = useState("select");
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
-  const [userId, setUserId] = useState("");
+  const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
+  
+  const { login, register } = useAuth();
 
   const handleCreate = async (e) => {
     e.preventDefault();
-    if (!name.trim() || !email.trim()) return;
+    if (!name.trim() || !email.trim() || !password || !confirmPassword) return;
     setLoading(true);
     try {
-      const user = await api.createUser({
+      const user = await register({
         name: name.trim(),
         email: email.trim(),
+        password,
+        confirm_password: confirmPassword
       });
-      dispatch(setCurrentUser(user));
+      
       toast.success(`Welcome, ${user.name}!`, {
         style: {
           background: "#18181b",
@@ -73,24 +81,11 @@ export default function Login() {
 
   const handleExisting = async (e) => {
     e.preventDefault();
-    if (!userId.trim()) return;
+    if (!email.trim() || !password) return;
     setLoading(true);
     try {
-      let user;
-      // TEMPORARY BYPASS FOR FAKE USER
-      if (parseInt(userId) === 9999) {
-        user = {
-          id: 9999,
-          name: "Test User",
-          email: "test@nexus.com",
-          balance: 1000000
-        };
-        await new Promise(resolve => setTimeout(resolve, 600)); // Simulate API delay
-      } else {
-        user = await api.getUser(parseInt(userId));
-      }
+      const user = await login({ email: email.trim(), password });
       
-      dispatch(setCurrentUser(user));
       toast.success(`Welcome back, ${user.name}!`, {
         style: {
           background: "#18181b",
@@ -395,7 +390,7 @@ export default function Login() {
                           Sign in
                         </h3>
                         <p className="text-xs text-[#a1a1aa] font-medium">
-                          Continue with your User ID
+                          Continue with Email & Password
                         </p>
                       </div>
                     </div>
@@ -464,6 +459,43 @@ export default function Login() {
                       className="w-full px-4 py-3.5 rounded-xl bg-black/40 border border-white/10 text-white text-[15px] focus:outline-none focus:border-emerald-500/50 focus:ring-1 focus:ring-emerald-500/50 transition-all placeholder:text-white/20"
                     />
                   </div>
+                  <div className="space-y-1.5 relative">
+                    <label className="block text-xs font-semibold text-[#a1a1aa] uppercase tracking-wider ml-1">
+                      Password
+                    </label>
+                    <div className="relative">
+                      <input
+                        type={showPassword ? "text" : "password"}
+                        value={password}
+                        onChange={(e) => setPassword(e.target.value)}
+                        required
+                        placeholder="••••••••"
+                        className="w-full px-4 py-3.5 pr-12 rounded-xl bg-black/40 border border-white/10 text-white text-[15px] focus:outline-none focus:border-emerald-500/50 focus:ring-1 focus:ring-emerald-500/50 transition-all placeholder:text-white/20"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowPassword(!showPassword)}
+                        className="absolute right-4 top-1/2 -translate-y-1/2 text-[#a1a1aa] hover:text-white transition-colors"
+                      >
+                        {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                      </button>
+                    </div>
+                  </div>
+                  <div className="space-y-1.5 relative">
+                    <label className="block text-xs font-semibold text-[#a1a1aa] uppercase tracking-wider ml-1">
+                      Confirm Password
+                    </label>
+                    <div className="relative">
+                      <input
+                        type={showPassword ? "text" : "password"}
+                        value={confirmPassword}
+                        onChange={(e) => setConfirmPassword(e.target.value)}
+                        required
+                        placeholder="••••••••"
+                        className="w-full px-4 py-3.5 pr-12 rounded-xl bg-black/40 border border-white/10 text-white text-[15px] focus:outline-none focus:border-emerald-500/50 focus:ring-1 focus:ring-emerald-500/50 transition-all placeholder:text-white/20"
+                      />
+                    </div>
+                  </div>
 
                   <motion.button
                     whileHover={{ scale: 1.02 }}
@@ -517,17 +549,38 @@ export default function Login() {
                 <form onSubmit={handleExisting} className="space-y-4">
                   <div className="space-y-1.5">
                     <label className="block text-xs font-semibold text-[#a1a1aa] uppercase tracking-wider ml-1">
-                      User ID / Key
+                      Email
                     </label>
                     <input
-                      type="number"
-                      value={userId}
-                      onChange={(e) => setUserId(e.target.value)}
+                      type="email"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
                       required
-                      min="1"
-                      placeholder="e.g. 1"
-                      className="w-full px-4 py-3.5 rounded-xl bg-black/40 border border-white/10 text-white text-[16px] font-mono focus:outline-none focus:border-emerald-500/50 focus:ring-1 focus:ring-emerald-500/50 transition-all placeholder:text-white/20"
+                      placeholder="john@company.com"
+                      className="w-full px-4 py-3.5 rounded-xl bg-black/40 border border-white/10 text-white text-[16px] focus:outline-none focus:border-emerald-500/50 focus:ring-1 focus:ring-emerald-500/50 transition-all placeholder:text-white/20"
                     />
+                  </div>
+                  <div className="space-y-1.5 relative">
+                    <label className="block text-xs font-semibold text-[#a1a1aa] uppercase tracking-wider ml-1">
+                      Password
+                    </label>
+                    <div className="relative">
+                      <input
+                        type={showPassword ? "text" : "password"}
+                        value={password}
+                        onChange={(e) => setPassword(e.target.value)}
+                        required
+                        placeholder="••••••••"
+                        className="w-full px-4 py-3.5 pr-12 rounded-xl bg-black/40 border border-white/10 text-white text-[16px] focus:outline-none focus:border-emerald-500/50 focus:ring-1 focus:ring-emerald-500/50 transition-all placeholder:text-white/20"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowPassword(!showPassword)}
+                        className="absolute right-4 top-1/2 -translate-y-1/2 text-[#a1a1aa] hover:text-white transition-colors"
+                      >
+                        {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                      </button>
+                    </div>
                   </div>
 
                   <motion.button

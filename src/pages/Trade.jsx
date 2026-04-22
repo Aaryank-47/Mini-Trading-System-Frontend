@@ -22,9 +22,12 @@ import {
 
 const formatCurrency = (n) =>
   new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(
-    n || 0,
+    Number(n || 0),
   );
-const fmtPct = (p) => (p >= 0 ? "+" : "") + (p || 0).toFixed(2) + "%";
+const fmtPct = (p) => {
+  const val = Number(p || 0);
+  return (val >= 0 ? "+" : "") + val.toFixed(2) + "%";
+};
 
 const getCoinColor = (sym) => {
   if (!sym)

@@ -5,7 +5,7 @@ import { AreaChart, Area, BarChart, Bar, Cell, LineChart, Line, XAxis, YAxis, To
 import api from '../api'
 import { setBalance, setPortfolio } from '../store/portfolioSlice'
 
-const fmtCur = (val) => new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(val || 0);
+const fmtCur = (val) => new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(Number(val || 0));
 
 const CustomTooltip = ({ active, payload }) => {
   if (active && payload && payload.length) {
