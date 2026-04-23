@@ -31,6 +31,11 @@ const api = {
     return res.data;
   },
 
+  getSymbols: async () => {
+    const res = await apiClient.get(API_ROUTES.MARKET.SYMBOLS);
+    return res.data;
+  },
+
   getSymbolPrice: async (symbol) => {
     const res = await apiClient.get(API_ROUTES.MARKET.SYMBOL_PRICE(symbol));
     return res.data;

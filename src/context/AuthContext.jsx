@@ -11,6 +11,12 @@ export const AuthProvider = ({ children }) => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const dispatch = useDispatch();
 
+  const applySession = useCallback((token, user) => {
+    setAccessToken(token);
+    dispatch(setCurrentUser(user));
+    setIsAuthenticated(true);
+  }, [dispatch]);
+
   const handleLogout = useCallback(async () => {
     try {
       // Optional: Call backend logout if it exists to clear the refresh cookie
@@ -24,57 +30,49 @@ export const AuthProvider = ({ children }) => {
     }
   }, [dispatch]);
 
-  // Handle initialization on mount
   useEffect(() => {
     const initAuth = async () => {
       try {
-        // 1. Attempt silent refresh using HttpOnly cookie
-        // No body needed as refresh token is in the cookie
         const res = await apiClient.post(API_ROUTES.USERS.REFRESH, {});
-        
-        const token = res.data.access_token;
-        setAccessToken(token);
-        
-        // 2. Fetch full user profile using the new access token
-        const userRes = await apiClient.get(API_ROUTES.USERS.PROFILE);
-        dispatch(setCurrentUser(userRes.data));
-        setIsAuthenticated(true);
-        
+
+        applySession(res.data.access_token, {
+          id: res.data.user_id,
+          name: res.data.name || 'Trader',
+          email: res.data.email || '',
+        });
+
         console.log('✓ Session restored successfully');
       } catch (error) {
-        // Silent refresh failed, user is not logged in or session expired
         console.log('ℹ No active session found.');
         clearAccessToken();
         setIsAuthenticated(false);
         dispatch(clearUser());
       } finally {
-        // Initialization complete - allow UI to render
         setIsInitializing(false);
       }
     };
 
     initAuth();
 
-    // Listen for forced logouts from the interceptor (e.g., refresh token expired)
     const onLogoutEvent = () => handleLogout();
     window.addEventListener('auth:logout', onLogoutEvent);
     
     return () => {
       window.removeEventListener('auth:logout', onLogoutEvent);
     };
-  }, [dispatch, handleLogout]);
+  }, [applySession, dispatch, handleLogout]);
 
   const login = async (credentials) => {
     try {
       const res = await apiClient.post(API_ROUTES.USERS.LOGIN, credentials);
-      // Access token stored in memory
-      setAccessToken(res.data.access_token);
-      
-      // Fetch full profile
-      const userRes = await apiClient.get(API_ROUTES.USERS.PROFILE);
-      dispatch(setCurrentUser(userRes.data));
-      setIsAuthenticated(true);
-      return userRes.data;
+      const user = {
+        id: res.data.user_id,
+        name: res.data.name || 'Trader',
+        email: res.data.email || credentials.email,
+      };
+
+      applySession(res.data.access_token, user);
+      return user;
     } catch (error) {
       setIsAuthenticated(false);
       throw error;
@@ -84,14 +82,14 @@ export const AuthProvider = ({ children }) => {
   const register = async (userData) => {
     try {
       const res = await apiClient.post(API_ROUTES.USERS.REGISTER, userData);
-      // Access token stored in memory
-      setAccessToken(res.data.access_token);
-      
-      // Fetch profile
-      const userRes = await apiClient.get(API_ROUTES.USERS.PROFILE);
-      dispatch(setCurrentUser(userRes.data));
-      setIsAuthenticated(true);
-      return userRes.data;
+      const user = {
+        id: res.data.user_id,
+        name: res.data.name || userData.name || 'Trader',
+        email: res.data.email || userData.email,
+      };
+
+      applySession(res.data.access_token, user);
+      return user;
     } catch (error) {
       setIsAuthenticated(false);
       throw error;

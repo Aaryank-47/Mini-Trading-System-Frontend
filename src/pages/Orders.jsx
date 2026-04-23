@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useMemo } from 'react'
 import { useSelector, useDispatch } from 'react-redux'
-import { setOrders } from '../store/portfolioSlice'
+import { setOrders, setOrdersLoaded } from '../store/portfolioSlice'
 import api from '../api'
 import { Clock, TrendingUp, TrendingDown, Search, Filter, Activity, BarChart2 } from 'lucide-react'
 import { AreaChart, Area, ResponsiveContainer, Tooltip as RechartsTooltip } from 'recharts'
@@ -17,8 +17,10 @@ const volumeTimeline = [
 export default function Orders() {
   const dispatch = useDispatch()
   const user = useSelector((s) => s.user.currentUser)
+  const symbolNames = useSelector((s) => s.market.symbolNames)
   const orders = useSelector((s) => s.portfolio.orders)
-  const [loading, setLoading] = useState(true)
+  const ordersLoaded = useSelector((s) => s.portfolio.ordersLoaded)
+  const [loading, setLoading] = useState(!ordersLoaded)
 
   // Track Mouse for Glowing Grid Background Effect
   const [mousePos, setMousePos] = useState({ x: -1000, y: -1000 })
@@ -31,10 +33,17 @@ export default function Orders() {
     const load = async () => {
       try { dispatch(setOrders(await api.getOrderHistory(user.id, 0, 100))) }
       catch (e) { console.error(e) }
-      finally { setLoading(false) }
+      finally {
+        dispatch(setOrdersLoaded(true))
+        setLoading(false)
+      }
     }
     load()
   }, [user, dispatch])
+
+  useEffect(() => {
+    setLoading(!ordersLoaded)
+  }, [ordersLoaded])
 
   const totalVolume = useMemo(() => {
     if(!orders) return 0;
@@ -202,6 +211,7 @@ export default function Orders() {
                 ) : orders.map(o => {
                   const d = new Date(o.created_at)
                   const isBuy = o.side === 'BUY'
+                  const displayName = o.symbol_name || symbolNames[o.symbol] || o.symbol
                   return (
                     <tr key={o.id} className="border-b border-[rgba(255,255,255,0.02)] last:border-0 hover:bg-[rgba(255,255,255,0.04)] transition-all duration-300 group cursor-default">
                       <td className="py-4 px-6 whitespace-nowrap">
@@ -218,6 +228,7 @@ export default function Orders() {
                             {o.symbol.substring(0,2)}
                           </div>
                           <span className="font-extrabold text-white text-[14px] tracking-wide">{o.symbol}</span>
+                          <span className="text-[12px] text-zinc-500 font-semibold">{displayName}</span>
                         </div>
                       </td>
                       <td className="py-4 px-6">

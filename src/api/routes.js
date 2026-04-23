@@ -9,6 +9,7 @@ export const API_ROUTES = {
   },
   MARKET: {
     PRICES: '/market/prices',
+    SYMBOLS: '/market/symbols',
     SYMBOL_PRICE: (symbol) => `/market/price/${symbol}`,
   },
   ORDERS: {

@@ -1,22 +1,15 @@
 import React, { useMemo, useRef } from 'react'
 import { useSelector } from 'react-redux'
 import { useNavigate } from 'react-router-dom'
-import { TrendingUp, TrendingDown, Activity, Search, SlidersHorizontal, Star, Flame, Zap, BarChart2 } from 'lucide-react'
+import { TrendingUp, TrendingDown, Activity, Search, SlidersHorizontal, Flame, Zap, BarChart2 } from 'lucide-react'
 import { AreaChart, Area, ResponsiveContainer } from 'recharts'
 
 const formatCurrency = (n) => new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(n || 0)
 const fmtPct = (p) => (p >= 0 ? '+' : '') + (p || 0).toFixed(2) + '%'
 
-const INFO = {
-  'BTC/USDT': { name: 'Bitcoin', vol: '$42.5B', cap: '$1.2T' },
-  'ETH/USDT': { name: 'Ethereum', vol: '$18.2B', cap: '$420B' },
-  'SOL/USDT': { name: 'Solana', vol: '$4.1B', cap: '$65B' },
-  'XRP/USDT': { name: 'Ripple', vol: '$1.5B', cap: '$33B' },
-  'ADA/USDT': { name: 'Cardano', vol: '$800M', cap: '$20B' },
-}
-
 export default function Market() {
   const prices = useSelector((s) => s.market.prices)
+  const symbolNames = useSelector((s) => s.market.symbolNames)
   const prev = useSelector((s) => s.market.previousPrices)
   const history = useSelector((s) => s.market.priceHistory)
   const navigate = useNavigate()
@@ -37,9 +30,9 @@ export default function Market() {
   const symbols = useMemo(() => Object.entries(prices).map(([sym, price]) => {
     const p = prev[sym]
     const chPct = p ? ((price - p) / p) * 100 : 0
-    const info = INFO[sym] || { name: sym.split('/')[0], vol: '$1.0B', cap: '$10B' }
-    return { sym, price, chPct, ...info, history: history[sym] || [] }
-  }), [prices, prev, history])
+    const name = symbolNames[sym] || sym
+    return { sym, price, chPct, name, history: history[sym] || [] }
+  }), [prices, prev, history, symbolNames])
 
   return (
     <div 
@@ -126,11 +119,11 @@ export default function Market() {
                   const chartColor = up ? '#10B981' : '#F43F5E';
 
                   return (
-                    <tr key={s.sym} className="border-b border-white/5 last:border-0 hover:bg-[rgba(16,185,129,0.05)] hover:border-[#10B981]/20 transition-all duration-300 group cursor-pointer" onClick={() => navigate(`/trade/${s.sym.split('/')[0]}`)}>
+                    <tr key={s.sym} className="border-b border-white/5 last:border-0 hover:bg-[rgba(16,185,129,0.05)] hover:border-[#10B981]/20 transition-all duration-300 group cursor-pointer" onClick={() => navigate(`/trade/${s.sym}`)}>
                       <td className="py-5 px-8">
                         <div className="flex items-center gap-4 relative">
                           <div className="w-12 h-12 rounded-2xl bg-[#10B981]/10 border border-[#10B981]/20 flex items-center justify-center font-black text-[14px] text-[#10B981] shadow-inner transition-transform duration-300 group-hover:scale-110 group-hover:bg-[#10B981] group-hover:text-black">
-                            {s.sym.split('/')[0]}
+                            {s.sym}
                           </div>
                           <div className="flex flex-col">
                             <span className="font-extrabold text-white text-[16px] group-hover:text-[#10B981] transition-colors">{s.sym}</span>
@@ -171,14 +164,14 @@ export default function Market() {
                         </div>
                       </td>
                       <td className="py-5 px-8 text-right">
-                        <span className="text-[15px] font-extrabold text-zinc-300">{s.vol}</span>
+                        <span className="text-[15px] font-extrabold text-zinc-300">--</span>
                       </td>
                       <td className="py-5 px-8 text-right">
-                        <span className="text-[15px] font-extrabold text-zinc-300 drop-shadow-lg">{s.cap}</span>
+                        <span className="text-[15px] font-extrabold text-zinc-300 drop-shadow-lg">--</span>
                       </td>
                       <td className="py-5 px-8 text-right">
                         <button 
-                          onClick={(e) => { e.stopPropagation(); navigate(`/trade/${s.sym.split('/')[0]}`); }}
+                          onClick={(e) => { e.stopPropagation(); navigate(`/trade/${s.sym}`); }}
                           className="px-6 py-3 rounded-xl bg-[rgba(255,255,255,0.05)] border border-white/10 text-white text-[13px] font-black uppercase tracking-widest group-hover:bg-[#10B981] group-hover:text-black group-hover:border-[#10B981] group-hover:shadow-[0_0_20px_rgba(16,185,129,0.5)] transition-all duration-300"
                         >
                           Execute

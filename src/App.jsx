@@ -1,6 +1,6 @@
 import React, { useEffect, Suspense } from 'react'
 import { useSelector, useDispatch } from 'react-redux'
-import { setPrices, updatePrice, setConnected } from './store/marketSlice'
+import { setPrices, setSymbols, updatePrice, setConnected } from './store/marketSlice'
 import { addOrder } from './store/portfolioSlice'
 import { useAuth } from './context/AuthContext'
 import api from './api'
@@ -26,17 +26,27 @@ export default function App() {
   // Fetch initial prices & start WebSocket
   useEffect(() => {
     // Only fetch if authenticated or we don't care about auth for public market data
-    const fetchPrices = async () => {
+    const fetchMarketData = async () => {
       try {
-        const prices = await api.getPrices()
-        dispatch(setPrices(prices))
+        const [pricesResult, symbolsResult] = await Promise.allSettled([
+          api.getPrices(),
+          api.getSymbols(),
+        ])
+
+        if (pricesResult.status === 'fulfilled') {
+          dispatch(setPrices(pricesResult.value))
+        }
+
+        if (symbolsResult.status === 'fulfilled') {
+          dispatch(setSymbols(symbolsResult.value.symbols || []))
+        }
       } catch (e) {
-        console.error('Failed to fetch prices:', e)
+        console.error('Failed to fetch market data:', e)
       }
     }
 
-    fetchPrices()
-    const interval = setInterval(fetchPrices, 5000)
+    fetchMarketData()
+    const interval = setInterval(fetchMarketData, 5000)
 
     return () => clearInterval(interval)
   }, [dispatch])
@@ -49,7 +59,7 @@ export default function App() {
     wsManager.connect(user.id)
 
     const unsubPrice = wsManager.on('price_update', (data) => {
-      dispatch(updatePrice({ symbol: data.symbol, price: data.price }))
+      dispatch(updatePrice({ symbol: data.symbol, price: data.price, name: data.symbol_name }))
     })
 
     const unsubOrder = wsManager.on('order_executed', (data) => {
@@ -57,6 +67,7 @@ export default function App() {
         ...data,
         quantity: data.quantity ?? data.qty,
         created_at: data.created_at ?? data.timestamp,
+        symbol_name: data.symbol_name,
       }))
     })
 

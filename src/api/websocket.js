@@ -40,8 +40,18 @@ class WebSocketManager {
       this.ws.onmessage = (event) => {
         try {
           const data = JSON.parse(event.data)
-          this._emit(data.event, data)
-          this._emit('message', data)
+          const normalized = data && typeof data === 'object' && data.event
+            ? { ...(data.data || {}), event: data.event, timestamp: data.timestamp }
+            : data
+
+          this._emit(normalized.event || 'message', normalized)
+          this._emit('message', normalized)
+
+          // Fallback strategy: keep REST polling active in the UI.
+          // WebSocket is an optimization; clients should continue polling if reconnect fails.
+          if (normalized.event === 'ping' && this.ws && this.ws.readyState === WebSocket.OPEN) {
+            this.ws.send(JSON.stringify({ event: 'pong', timestamp: new Date().toISOString() }))
+          }
         } catch (e) {
           console.error('[WS] Parse error:', e)
         }

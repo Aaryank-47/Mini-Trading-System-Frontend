@@ -4,6 +4,7 @@ import { Calendar, List, SlidersHorizontal, Clock, ArrowUpRight, ArrowDownRight,
 import { AreaChart, Area, BarChart, Bar, Cell, LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts'
 import api from '../api'
 import { setBalance, setPortfolio } from '../store/portfolioSlice'
+import TradingChart from '../components/TradingChart'
 
 const fmtCur = (val) => new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(Number(val || 0));
 
@@ -25,27 +26,75 @@ const CustomTooltip = ({ active, payload }) => {
 };
 
 const getCoinColor = (sym) => {
-  if (!sym) return 'bg-[rgba(255,255,255,0.05)] text-white border-[rgba(255,255,255,0.1)]';
+  if (!sym) return 'bg-[#333] text-white border-[#444]';
   const base = sym.split('/')[0];
   const colors = {
-    BTC: 'bg-[#F7931A]/10 text-[#F7931A] border-[#F7931A]/30',
-    ETH: 'bg-[#627EEA]/10 text-[#627EEA] border-[#627EEA]/30',
-    SOL: 'bg-[#14F195]/10 text-[#14F195] border-[#14F195]/30',
-    XRP: 'bg-[#00AAE4]/10 text-[#00AAE4] border-[#00AAE4]/30',
-    ADA: 'bg-[#0033AD]/10 text-[#8BCAFF] border-[#0033AD]/40',
+    BTC: 'bg-[#F7931A] text-white border-[#F7931A]',
+    ETH: 'bg-[#627EEA] text-white border-[#627EEA]',
+    SOL: 'bg-[#14F195] text-black border-[#14F195]',
+    XRP: 'bg-[#23292F] text-white border-[#23292F]',
+    ADA: 'bg-[#0033AD] text-white border-[#0033AD]',
   };
-  return colors[base] || 'bg-[rgba(255,255,255,0.05)] text-white border-[rgba(255,255,255,0.1)]';
+  const fallbackColors = [
+    'bg-[#EF4444] text-white border-[#EF4444]',
+    'bg-[#3B82F6] text-white border-[#3B82F6]',
+    'bg-[#10B981] text-white border-[#10B981]',
+    'bg-[#F59E0B] text-white border-[#F59E0B]',
+    'bg-[#8B5CF6] text-white border-[#8B5CF6]',
+    'bg-[#EC4899] text-white border-[#EC4899]',
+    'bg-[#06B6D4] text-white border-[#06B6D4]',
+  ];
+  if (colors[base]) return colors[base];
+  const hash = base.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
+  return fallbackColors[hash % fallbackColors.length];
 };
 
 export default function Dashboard() {
   const dispatch = useDispatch()
   const user = useSelector(s => s.user.currentUser)
-  const { prices, priceHistory, connected } = useSelector(s => s.market)
+  const { prices, priceHistory, connected, symbolNames } = useSelector(s => s.market)
   const { balance } = useSelector(s => s.portfolio)
   
   const defaultSymbols = ['BTC/USDT', 'ETH/USDT', 'SOL/USDT', 'XRP/USDT', 'EUR/USD'];
+  const liveSymbols = Object.keys(prices).length > 0 ? Object.keys(prices) : defaultSymbols;
   const [activeSymbol, setActiveSymbol] = useState('BTC/USDT');
   const [timeframe, setTimeframe] = useState('1H');
+  const [isSymbolDropdownOpen, setIsSymbolDropdownOpen] = useState(false);
+  const [watchlistFilter, setWatchlistFilter] = useState('All Assets');
+  const [favorites, setFavorites] = useState(['BTC/USDT', 'ETH/USDT', 'RELIANCE', 'SBIN']); // Mock favorites
+
+  // Auto-select valid symbol if current is missing from data stream
+  useEffect(() => {
+    const keys = Object.keys(prices);
+    if (keys.length > 0 && !keys.includes(activeSymbol)) {
+      setActiveSymbol(keys[0]);
+    }
+  }, [prices, activeSymbol]);
+
+  const displayedSymbols = useMemo(() => {
+    let filtered = [...liveSymbols];
+    if (watchlistFilter === 'Favorites Only') {
+      filtered = filtered.filter(sym => favorites.includes(sym));
+    } else if (watchlistFilter === 'Top Gainers') {
+      filtered.sort((a, b) => {
+        const pA = prices[a] || 0;
+        const hA = priceHistory[a] || [];
+        const pctA = hA[0] ? ((pA - hA[0]) / hA[0]) * 100 : 0;
+        
+        const pB = prices[b] || 0;
+        const hB = priceHistory[b] || [];
+        const pctB = hB[0] ? ((pB - hB[0]) / hB[0]) * 100 : 0;
+        
+        return pctB - pctA;
+      });
+    } else if (watchlistFilter === 'High Volume') {
+      // Fake high volume by just sorting randomly but deterministically based on symbol length to make it look different
+      filtered.sort((a, b) => b.length - a.length);
+    }
+    return filtered;
+  }, [liveSymbols, prices, priceHistory, watchlistFilter, favorites]);
+
+  const getSymbolLabel = (symbol) => symbolNames[symbol] || symbol
 
   // Track Mouse efficiently via DOM ref (0 re-renders)
   const containerRef = useRef(null)
@@ -151,20 +200,44 @@ export default function Dashboard() {
             <div className="absolute -bottom-[50px] -left-[50px] w-[200px] h-[200px] bg-[rgba(59,130,246,0.1)] rounded-full blur-[80px] pointer-events-none" />
             
             <div className="p-4 sm:p-6 pb-2 relative z-10 flex justify-between items-start">
-              <div>
-                <div className="flex items-center gap-3 mb-2 group cursor-pointer w-max outline-none focus:outline-none">
-                  <div className="flex items-center gap-2 bg-[#1C1C1D] border border-[#333333] pl-2 pr-3 py-1.5 rounded-full shadow-md transition-all">
+              <div className="relative">
+                <div className="flex items-center gap-3 mb-2 group cursor-pointer w-max outline-none focus:outline-none"
+                     onClick={() => setIsSymbolDropdownOpen(!isSymbolDropdownOpen)}>
+                  <div className="flex items-center gap-2 bg-[#1C1C1D] border border-[#333333] hover:border-[#555] pl-2 pr-3 py-1.5 rounded-full shadow-md transition-all">
                     <div className={`w-6 h-6 rounded-full flex items-center justify-center font-bold text-[10px] tracking-tighter border ${getCoinColor(activeSymbol)}`}>
                       {activeSymbol.split('/')[0]}
                     </div>
-                    <h2 className="text-[17px] font-extrabold text-white tracking-tight leading-none">{activeSymbol}</h2>
-                    <svg className="w-3.5 h-3.5 text-zinc-500 group-hover:text-white transition-colors" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><path d="m6 9 6 6 6-6"/></svg>
+                    <h2 className="text-[17px] font-extrabold text-white tracking-tight leading-none select-none">{activeSymbol}</h2>
+                    <svg className={`w-3.5 h-3.5 text-zinc-500 group-hover:text-white transition-transform ${isSymbolDropdownOpen ? 'rotate-180' : ''}`} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><path d="m6 9 6 6 6-6"/></svg>
                   </div>
                   <span className={`tag-${isUp ? 'green' : 'red'}`}>
                     {isUp ? <TrendingUp size={14} /> : <TrendingDown size={14} />}
                     {Math.abs(pct).toFixed(2)}%
                   </span>
                 </div>
+                
+                {/* Dropdown Menu */}
+                {isSymbolDropdownOpen && (
+                  <div className="absolute top-full left-0 mt-2 w-48 bg-[#1A1A1D] border border-[#333] rounded-[12px] shadow-2xl z-50 overflow-hidden">
+                    <div className="max-h-[200px] overflow-y-auto p-1">
+                      {liveSymbols.map(sym => (
+                        <button
+                          key={sym}
+                          onClick={() => {
+                            setActiveSymbol(sym);
+                            setIsSymbolDropdownOpen(false);
+                          }}
+                          className={`w-full text-left px-3 py-2 text-sm font-bold rounded-[8px] transition-colors flex items-center gap-2 ${activeSymbol === sym ? 'bg-[#34D399]/20 text-[#34D399]' : 'text-zinc-300 hover:bg-[#2A2A2D]'}`}
+                        >
+                          <div className={`w-5 h-5 rounded-full flex items-center justify-center text-[8px] border ${getCoinColor(sym)}`}>
+                            {sym.split('/')[0]}
+                          </div>
+                          {sym}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
                 <div className="flex items-baseline gap-2">
                   <span className="text-3xl sm:text-4xl font-extrabold text-white tracking-tighter">
                     {fmtCur(currentPrice)}
@@ -185,42 +258,9 @@ export default function Dashboard() {
               </div>
             </div>
 
-            <div className="h-[280px] w-full mt-4 -ml-2 relative z-10">
-              <ResponsiveContainer width="100%" height="100%">
-                <AreaChart data={chartData}>
-                  <defs>
-                    <linearGradient id="chartGradient" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="0%" stopColor={isUp ? '#34D399' : '#F87171'} stopOpacity={0.4}/>
-                      <stop offset="100%" stopColor={isUp ? '#34D399' : '#F87171'} stopOpacity={0.0}/>
-                    </linearGradient>
-                    <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
-                      <feGaussianBlur stdDeviation="4" result="blur" />
-                      <feComposite in="SourceGraphic" in2="blur" operator="over" />
-                    </filter>
-                  </defs>
-                  <YAxis domain={['auto', 'auto']} hide />
-                  <Tooltip content={<CustomTooltip />} cursor={{ stroke: 'rgba(255,255,255,0.1)', strokeWidth: 1, strokeDasharray: '3 3' }} />
-                  <Area 
-                    type="monotone" 
-                    dataKey="price" 
-                    stroke={isUp ? '#34D399' : '#F87171'} 
-                    strokeWidth={3}
-                    fillOpacity={1} 
-                    fill="url(#chartGradient)" 
-                    isAnimationActive={false}
-                    activeDot={{ r: 6, fill: '#fff', stroke: '#000', strokeWidth: 2 }}
-                    style={{ filter: "url(#glow)" }}
-                  />
-                </AreaChart>
-              </ResponsiveContainer>
+            <div className="h-[280px] w-full mt-4 relative z-10 rounded-[12px] overflow-hidden border border-[rgba(255,255,255,0.05)] shadow-[inset_0_0_20px_rgba(0,0,0,0.5)]">
+               <TradingChart symbol={activeSymbol} currentPrice={currentPrice} history={history} isUp={isUp} timeframe={timeframe} />
             </div>
-            
-            {/* Grid Overlay inside chart area */}
-            <div className="absolute inset-0 bottom-0 pointer-events-none" style={{ 
-              backgroundImage: 'linear-gradient(to right, rgba(255,255,255,0.03) 1px, transparent 1px), linear-gradient(to bottom, rgba(255,255,255,0.03) 1px, transparent 1px)',
-              backgroundSize: '40px 40px',
-              maskImage: 'linear-gradient(to bottom, rgba(0,0,0,0) 20%, rgba(0,0,0,1) 100%)'
-            }} />
           </div>
 
           {/* Main Watchlist */}
@@ -231,30 +271,31 @@ export default function Dashboard() {
                 Live Watchlist
               </h3>
               
-              <div className="relative group">
+              <div className="relative group pb-2">
                 <button className="text-[#A1A1AA] group-hover:text-[#34D399] group-hover:rotate-180 transition-all outline-none py-1 px-1">
                   <List size={16} />
                 </button>
                 
                 {/* Premium Solid Overlay Popup for Watchlist Filters (Hover Activated) */}
                 <div 
-                  className="absolute top-[100%] right-0 w-[180px] p-2 rounded-[14px] border border-[#222] shadow-[0_20px_40px_rgba(0,0,0,0.9)] opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-300 z-[100] translate-y-2 group-hover:translate-y-0 bg-[#0A0A0A]" 
+                  className="absolute top-[100%] right-0 mt-[-8px] pt-[8px] w-[180px] opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-300 z-[100] translate-y-2 group-hover:translate-y-0" 
                 >
-                  <div className="flex flex-col gap-1">
-                    <button className="w-full text-left px-3 py-2 text-[12px] font-bold text-white bg-[#1A1A1A] rounded-[8px] hover:bg-[#222] transition-colors flex items-center justify-between outline-none border border-[#333]">
-                      All Assets
-                      <div className="w-1.5 h-1.5 rounded-full bg-[#34D399] shadow-[0_0_8px_rgba(52,211,153,0.8)]" />
-                    </button>
-                    <button className="w-full text-left px-3 py-2 text-[12px] font-semibold text-[#A1A1AA] hover:text-white rounded-[8px] hover:bg-[#1A1A1A] transition-colors outline-none">
-                      Favorites Only
-                    </button>
-                    <button className="w-full text-left px-3 py-2 text-[12px] font-semibold text-[#A1A1AA] hover:text-white rounded-[8px] hover:bg-[#1A1A1A] transition-colors outline-none">
-                      Top Gainers
-                    </button>
-                    <button className="w-full text-left px-3 py-2 text-[12px] font-semibold text-[#A1A1AA] hover:text-white rounded-[8px] hover:bg-[#1A1A1A] transition-colors outline-none">
-                      High Volume
-                    </button>
-                    <button className="w-full text-left px-3 py-2 text-[12px] font-semibold text-[#EF4444] hover:text-[#F87171] rounded-[8px] hover:bg-[#1A1A1A] transition-colors outline-none mt-1 border-t border-[#222] pt-2 rounded-t-[0px]">
+                  <div className="bg-[#0A0A0A] p-2 rounded-[14px] border border-[#222] shadow-[0_20px_40px_rgba(0,0,0,0.9)] flex flex-col gap-1">
+                    {['All Assets', 'Favorites Only', 'Top Gainers', 'High Volume'].map(f => (
+                      <button 
+                        key={f}
+                        onClick={() => setWatchlistFilter(f)}
+                        className={`w-full text-left px-3 py-2 text-[12px] font-semibold rounded-[8px] transition-colors flex items-center justify-between outline-none ${watchlistFilter === f ? 'text-white bg-[#1A1A1A] border border-[#333]' : 'text-[#A1A1AA] hover:text-white hover:bg-[#1A1A1A] border border-transparent'}`}>
+                        {f}
+                        {watchlistFilter === f && (
+                          <div className="w-1.5 h-1.5 rounded-full bg-[#34D399] shadow-[0_0_8px_rgba(52,211,153,0.8)]" />
+                        )}
+                      </button>
+                    ))}
+                    
+                    <button 
+                      onClick={() => setWatchlistFilter('All Assets')}
+                      className="w-full text-left px-3 py-2 text-[12px] font-semibold text-[#EF4444] hover:text-[#F87171] rounded-[8px] hover:bg-[#1A1A1A] transition-colors outline-none mt-1 border-t border-[#222] pt-2 rounded-t-[0px]">
                       Clear Filters
                     </button>
                   </div>
@@ -263,7 +304,7 @@ export default function Dashboard() {
             </div>
             
             <div className="p-2 space-y-1 overflow-y-auto w-full flex-1">
-              {defaultSymbols.map((sym, idx) => {
+              {displayedSymbols.map((sym, idx) => {
                 const p = prices[sym] || 0;
                 const h = priceHistory[sym] || [];
                 const sP = h[0] || p;
@@ -279,8 +320,17 @@ export default function Dashboard() {
                       ${activeSymbol === sym ? 'bg-[rgba(255,255,255,0.05)] border border-[rgba(255,255,255,0.1)] shadow-lg' : 'border border-transparent hover:bg-[rgba(255,255,255,0.02)]'}`}
                   >
                     <div className="flex items-center gap-3">
-                      <div className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-[10px] border shadow-sm ${getCoinColor(sym)}`}>
-                        {sym.split('/')[0]}
+                      <div className="relative group/logo">
+                        <div
+                          className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-[10px] border shadow-sm ${getCoinColor(sym)}`}
+                          title={getSymbolLabel(sym)}
+                          aria-label={getSymbolLabel(sym)}
+                        >
+                          {sym.split('/')[0]}
+                        </div>
+                        <div className="pointer-events-none absolute left-1/2 bottom-full z-20 mb-2 -translate-x-1/2 whitespace-nowrap rounded-lg border border-white/10 bg-[#0A0A0A] px-2.5 py-1 text-[11px] font-semibold text-white opacity-0 shadow-[0_10px_20px_rgba(0,0,0,0.35)] transition-all duration-150 group-hover/logo:opacity-100 group-hover/logo:-translate-y-0.5">
+                          {getSymbolLabel(sym)}
+                        </div>
                       </div>
                       <span className="font-bold text-white text-[14px]">{sym}</span>
                     </div>

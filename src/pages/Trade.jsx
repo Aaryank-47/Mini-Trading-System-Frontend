@@ -30,20 +30,27 @@ const fmtPct = (p) => {
 };
 
 const getCoinColor = (sym) => {
-  if (!sym)
-    return "bg-[rgba(255,255,255,0.05)] text-white border-[rgba(255,255,255,0.1)]";
-  const base = sym.split("/")[0];
+  if (!sym) return 'bg-[#333] text-white border-[#444]';
+  const base = sym.split('/')[0];
   const colors = {
-    BTC: "bg-[#F7931A]/10 text-[#F7931A] border-[#F7931A]/30",
-    ETH: "bg-[#627EEA]/10 text-[#627EEA] border-[#627EEA]/30",
-    SOL: "bg-[#14F195]/10 text-[#14F195] border-[#14F195]/30",
-    XRP: "bg-[#00AAE4]/10 text-[#00AAE4] border-[#00AAE4]/30",
-    ADA: "bg-[#0033AD]/10 text-[#8BCAFF] border-[#0033AD]/40",
+    BTC: 'bg-[#F7931A] text-white border-[#F7931A]',
+    ETH: 'bg-[#627EEA] text-white border-[#627EEA]',
+    SOL: 'bg-[#14F195] text-black border-[#14F195]',
+    XRP: 'bg-[#23292F] text-white border-[#23292F]',
+    ADA: 'bg-[#0033AD] text-white border-[#0033AD]',
   };
-  return (
-    colors[base] ||
-    "bg-[rgba(255,255,255,0.05)] text-white border-[rgba(255,255,255,0.1)]"
-  );
+  const fallbackColors = [
+    'bg-[#EF4444] text-white border-[#EF4444]',
+    'bg-[#3B82F6] text-white border-[#3B82F6]',
+    'bg-[#10B981] text-white border-[#10B981]',
+    'bg-[#F59E0B] text-white border-[#F59E0B]',
+    'bg-[#8B5CF6] text-white border-[#8B5CF6]',
+    'bg-[#EC4899] text-white border-[#EC4899]',
+    'bg-[#06B6D4] text-white border-[#06B6D4]',
+  ];
+  if (colors[base]) return colors[base];
+  const hash = base.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
+  return fallbackColors[hash % fallbackColors.length];
 };
 
 // Generate an aggressive volatile mock intraday chart based on the selected price
@@ -65,12 +72,13 @@ export default function Trade() {
   const dispatch = useDispatch();
   const user = useSelector((s) => s.user.currentUser);
   const prices = useSelector((s) => s.market.prices);
+  const symbolNames = useSelector((s) => s.market.symbolNames);
   const prev = useSelector((s) => s.market.previousPrices);
   const portfolio = useSelector((s) => s.portfolio.portfolio);
 
   const symbols = Object.keys(prices);
   const [sel, setSel] = useState(
-    routeSymbol?.toUpperCase() || symbols[0] || "BTC/USDT",
+    routeSymbol?.toUpperCase() || symbols[0] || "SBIN",
   );
   const [side, setSide] = useState("BUY");
   const [qty, setQty] = useState("");
@@ -83,7 +91,7 @@ export default function Trade() {
   };
 
   useEffect(() => {
-    if (routeSymbol) setSel(routeSymbol.toUpperCase().replace("-", "/"));
+    if (routeSymbol) setSel(routeSymbol.toUpperCase());
   }, [routeSymbol]);
   useEffect(() => {
     if (user)
@@ -107,6 +115,7 @@ export default function Trade() {
   const canBuy = side === "BUY" && q > 0 && total <= wallet;
   const canSell = side === "SELL" && q > 0 && hold && q <= hold.quantity;
   const ok = side === "BUY" ? canBuy : canSell;
+  const displayName = symbolNames[sel] || sel;
 
   const submit = async (e) => {
     e.preventDefault();
@@ -119,8 +128,8 @@ export default function Trade() {
         qty: q,
         side,
       });
-      dispatch(addOrder(order));
-      toast.success(`${side} ${q} × ${sel} @ ${formatCurrency(order.price)}`);
+      dispatch(addOrder({ ...order, symbol_name: symbolNames[sel] || sel }));
+      toast.success(`${side} ${q} × ${displayName} (${sel}) @ ${formatCurrency(order.price)}`);
       setQty("");
       dispatch(setPortfolio(await api.getPortfolio(user.id)));
     } catch (err) {
@@ -202,7 +211,7 @@ export default function Trade() {
                     <div
                       className={`w-14 h-14 rounded-2xl flex items-center justify-center font-bold text-[18px] shadow-lg border ${getCoinColor(sel)}`}
                     >
-                      {sel.split("/")[0]}
+                      {sel}
                     </div>
                     <div>
                       <div className="flex items-center gap-3">
@@ -214,7 +223,7 @@ export default function Trade() {
                         </span>
                       </div>
                       <p className="text-[13px] font-bold text-zinc-500 uppercase tracking-widest mt-1">
-                        Binance Interbank
+                        {displayName}
                       </p>
                     </div>
                   </div>
@@ -234,7 +243,7 @@ export default function Trade() {
                       )}
                       {fmtPct(ch)}
                     </div>
-                  </div>
+                    </div>
                 </div>
               </div>
 

@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useMemo } from 'react'
 import { useSelector, useDispatch } from 'react-redux'
 import { useNavigate } from 'react-router-dom'
-import { setPortfolio } from '../store/portfolioSlice'
+import { setPortfolio, setPortfolioLoaded } from '../store/portfolioSlice'
 import api from '../api'
 import { ArrowUpRight, ArrowDownRight, PieChart, Activity, Wallet, TrendingUp, Search, SlidersHorizontal } from 'lucide-react'
 import { AreaChart, Area, ResponsiveContainer, Tooltip as RechartsTooltip } from 'recharts'
@@ -13,16 +13,27 @@ const fmtPct = (p) => {
 }
 
 const getCoinColor = (sym) => {
-  if (!sym) return 'bg-[rgba(255,255,255,0.05)] text-white border-[rgba(255,255,255,0.1)]';
+  if (!sym) return 'bg-[#333] text-white border-[#444]';
   const base = sym.split('/')[0];
   const colors = {
-    BTC: 'bg-[#F7931A]/10 text-[#F7931A] border-[#F7931A]/30',
-    ETH: 'bg-[#627EEA]/10 text-[#627EEA] border-[#627EEA]/30',
-    SOL: 'bg-[#14F195]/10 text-[#14F195] border-[#14F195]/30',
-    XRP: 'bg-[#00AAE4]/10 text-[#00AAE4] border-[#00AAE4]/30',
-    ADA: 'bg-[#0033AD]/10 text-[#8BCAFF] border-[#0033AD]/40',
+    BTC: 'bg-[#F7931A] text-white border-[#F7931A]',
+    ETH: 'bg-[#627EEA] text-white border-[#627EEA]',
+    SOL: 'bg-[#14F195] text-black border-[#14F195]',
+    XRP: 'bg-[#23292F] text-white border-[#23292F]',
+    ADA: 'bg-[#0033AD] text-white border-[#0033AD]',
   };
-  return colors[base] || 'bg-black text-white border-[rgba(255,255,255,0.1)]';
+  const fallbackColors = [
+    'bg-[#EF4444] text-white border-[#EF4444]',
+    'bg-[#3B82F6] text-white border-[#3B82F6]',
+    'bg-[#10B981] text-white border-[#10B981]',
+    'bg-[#F59E0B] text-white border-[#F59E0B]',
+    'bg-[#8B5CF6] text-white border-[#8B5CF6]',
+    'bg-[#EC4899] text-white border-[#EC4899]',
+    'bg-[#06B6D4] text-white border-[#06B6D4]',
+  ];
+  if (colors[base]) return colors[base];
+  const hash = base.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
+  return fallbackColors[hash % fallbackColors.length];
 };
 
 // Premium Mock Data for Portfolio Growth Timeline
@@ -37,7 +48,8 @@ export default function Portfolio() {
   const navigate = useNavigate()
   const user = useSelector((s) => s.user.currentUser)
   const portfolio = useSelector((s) => s.portfolio.portfolio)
-  const [loading, setLoading] = useState(true)
+  const portfolioLoaded = useSelector((s) => s.portfolio.portfolioLoaded)
+  const [loading, setLoading] = useState(!portfolioLoaded)
 
   // Track Mouse for Glowing Grid Background Effect
   const [mousePos, setMousePos] = useState({ x: -1000, y: -1000 })
@@ -50,12 +62,19 @@ export default function Portfolio() {
     const load = async () => {
       try { dispatch(setPortfolio(await api.getPortfolio(user.id))) }
       catch (e) { console.error(e) }
-      finally { setLoading(false) }
+      finally {
+        dispatch(setPortfolioLoaded(true))
+        setLoading(false)
+      }
     }
     load()
     const iv = setInterval(load, 5000)
     return () => clearInterval(iv)
   }, [user, dispatch])
+
+  useEffect(() => {
+    setLoading(!portfolioLoaded)
+  }, [portfolioLoaded])
 
   const pnl = portfolio?.total_unrealized_pnl || 0
   const pnlUp = pnl >= 0

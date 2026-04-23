@@ -1,4 +1,4 @@
-import React, { lazy } from 'react'
+import React, { lazy, useEffect } from 'react'
 import { Routes, Route, Navigate } from 'react-router-dom'
 import Layout from '../components/Layout'
 import ProtectedRoute from '../components/ProtectedRoute'
@@ -15,6 +15,16 @@ const Support = lazy(() => import('../pages/Support'))
 const Notifications = lazy(() => import('../pages/Notifications'))
 
 export default function AppRoutes({ isAuthenticated }) {
+  useEffect(() => {
+    void import('../pages/Market')
+    void import('../pages/Portfolio')
+    void import('../pages/Orders')
+    void import('../pages/Trade')
+    void import('../pages/Settings')
+    void import('../pages/Support')
+    void import('../pages/Notifications')
+  }, [])
+
   return (
     <Routes>
       <Route
