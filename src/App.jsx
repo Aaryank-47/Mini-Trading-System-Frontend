@@ -1,6 +1,7 @@
 import React, { useEffect, Suspense } from 'react'
 import { useSelector, useDispatch } from 'react-redux'
 import { setPrices, updatePrice, setConnected } from './store/marketSlice'
+import { addOrder } from './store/portfolioSlice'
 import { useAuth } from './context/AuthContext'
 import api from './api'
 import wsManager from './api/websocket'
@@ -10,8 +11,8 @@ function PageLoader() {
   return (
     <div className="flex items-center justify-center h-[60vh]">
       <div className="flex flex-col items-center gap-4">
-        <div className="w-10 h-10 border-2 border-[var(--color-surface-4)] border-t-[var(--color-accent)] rounded-full animate-spin" />
-        <p className="text-[var(--color-text-muted)] text-sm">Loading...</p>
+        <div className="w-10 h-10 border-2 border-(--color-surface-4) border-t-(--color-accent) rounded-full animate-spin" />
+        <p className="text-(--color-text-muted) text-sm">Loading...</p>
       </div>
     </div>
   )
@@ -51,12 +52,21 @@ export default function App() {
       dispatch(updatePrice({ symbol: data.symbol, price: data.price }))
     })
 
+    const unsubOrder = wsManager.on('order_executed', (data) => {
+      dispatch(addOrder({
+        ...data,
+        quantity: data.quantity ?? data.qty,
+        created_at: data.created_at ?? data.timestamp,
+      }))
+    })
+
     const unsubConn = wsManager.on('connection', (data) => {
       dispatch(setConnected(data.status === 'connected'))
     })
 
     return () => {
       unsubPrice()
+      unsubOrder()
       unsubConn()
       wsManager.disconnect()
     }
@@ -67,8 +77,8 @@ export default function App() {
     return (
       <div className="flex items-center justify-center h-screen bg-[#0B0E11]">
         <div className="flex flex-col items-center gap-4">
-          <div className="w-12 h-12 border-4 border-[var(--color-surface-4)] border-t-[var(--color-accent)] rounded-full animate-spin" />
-          <p className="text-[var(--color-text-muted)] font-medium">Restoring Session...</p>
+          <div className="w-12 h-12 border-4 border-(--color-surface-4) border-t-(--color-accent) rounded-full animate-spin" />
+          <p className="text-(--color-text-muted) font-medium">Restoring Session...</p>
         </div>
       </div>
     )

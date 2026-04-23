@@ -22,7 +22,7 @@ export const clearAccessToken = () => {
 
 const apiClient = axios.create({
   baseURL: API_BASE,
-  withCredentials: true,
+  withCredentials: true, // Crucial for sending/receiving HttpOnly cookies
   headers: {
     'Content-Type': 'application/json'
   }

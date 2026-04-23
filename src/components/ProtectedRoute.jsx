@@ -18,8 +18,8 @@ const ProtectedRoute = () => {
     return (
       <div className="flex items-center justify-center h-screen bg-[#0B0E11]">
         <div className="flex flex-col items-center gap-4">
-          <div className="w-12 h-12 border-4 border-[var(--color-surface-4)] border-t-[var(--color-accent)] rounded-full animate-spin" />
-          <p className="text-[var(--color-text-muted)] font-medium">Authenticating...</p>
+          <div className="w-12 h-12 border-4 border-(--color-surface-4) border-t-(--color-accent) rounded-full animate-spin" />
+          <p className="text-(--color-text-muted) font-medium">Authenticating...</p>
         </div>
       </div>
     );
