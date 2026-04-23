@@ -1,4 +1,5 @@
 import axios from 'axios';
+import { API_ROUTES } from '../api/routes';
 
 const isLocal = window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1";
 const API_BASE = isLocal 
@@ -21,7 +22,7 @@ export const clearAccessToken = () => {
 
 const apiClient = axios.create({
   baseURL: API_BASE,
-  withCredentials: true, // Crucial for sending/receiving HttpOnly cookies
+  withCredentials: true,
   headers: {
     'Content-Type': 'application/json'
   }
@@ -49,8 +50,8 @@ apiClient.interceptors.response.use(
     if (
       error.response?.status === 401 &&
       !originalRequest._retry &&
-      !originalRequest.url.includes('/users/token/refresh') &&
-      !originalRequest.url.includes('/users/login')
+      !originalRequest.url.includes(API_ROUTES.USERS.REFRESH) &&
+      !originalRequest.url.includes(API_ROUTES.USERS.LOGIN)
     ) {
       originalRequest._retry = true;
 
@@ -58,7 +59,7 @@ apiClient.interceptors.response.use(
         // Attempt silent refresh
         // Note: We don't send the refresh_token in the body.
         // It relies on the HttpOnly cookie being automatically sent via withCredentials: true.
-        const res = await axios.post(`${API_BASE}/users/token/refresh`, {}, {
+        const res = await axios.post(`${API_BASE}${API_ROUTES.USERS.REFRESH}`, {}, {
           withCredentials: true
         });
 

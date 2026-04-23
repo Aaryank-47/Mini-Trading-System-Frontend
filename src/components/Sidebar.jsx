@@ -3,6 +3,7 @@ import { NavLink } from 'react-router-dom'
 import { LayoutDashboard, BarChart2, Activity, Briefcase, ListOrdered, Settings, LogOut, HelpCircle, X, Crown } from 'lucide-react'
 import { useDispatch } from 'react-redux'
 import { clearUser } from '../store/userSlice'
+import { ROUTES } from '../routes/paths'
 
 export default function Sidebar({ isOpen, setIsOpen }) {
   const dispatch = useDispatch()
@@ -11,11 +12,11 @@ export default function Sidebar({ isOpen, setIsOpen }) {
     dispatch(clearUser())
   }
   const mainNav = [
-    { name: 'Dashboard', path: '/', icon: LayoutDashboard },
-    { name: 'Markets', path: '/market', icon: BarChart2 },
-    { name: 'Trade', path: '/trade', icon: Activity },
-    { name: 'Portfolio', path: '/portfolio', icon: Briefcase },
-    { name: 'Orders', path: '/orders', icon: ListOrdered },
+    { name: 'Dashboard', path: ROUTES.HOME, icon: LayoutDashboard },
+    { name: 'Markets', path: ROUTES.MARKET, icon: BarChart2 },
+    { name: 'Trade', path: ROUTES.TRADE, icon: Activity },
+    { name: 'Portfolio', path: ROUTES.PORTFOLIO, icon: Briefcase },
+    { name: 'Orders', path: ROUTES.ORDERS, icon: ListOrdered },
   ];
 
   return (
@@ -85,7 +86,7 @@ export default function Sidebar({ isOpen, setIsOpen }) {
           
           <nav className="flex flex-col space-y-1 px-3 mb-auto">
             <NavLink
-              to="/settings"
+              to={ROUTES.SETTINGS}
               onClick={() => setIsOpen && setIsOpen(false)}
               className={({ isActive }) => 
                 `flex items-center gap-3 px-3 py-2.5 rounded-[8px] transition-colors outline-none
@@ -103,7 +104,7 @@ export default function Sidebar({ isOpen, setIsOpen }) {
             </NavLink>
             
             <NavLink
-              to="/support"
+              to={ROUTES.SUPPORT}
               onClick={() => setIsOpen && setIsOpen(false)}
               className={({ isActive }) => 
                 `flex items-center gap-3 px-3 py-2.5 rounded-[8px] transition-colors outline-none

@@ -1,22 +1,10 @@
-import React, { useEffect, lazy, Suspense } from 'react'
-import { Routes, Route, Navigate } from 'react-router-dom'
+import React, { useEffect, Suspense } from 'react'
 import { useSelector, useDispatch } from 'react-redux'
 import { setPrices, updatePrice, setConnected } from './store/marketSlice'
 import { useAuth } from './context/AuthContext'
 import api from './api'
 import wsManager from './api/websocket'
-import Layout from './components/Layout'
-import ProtectedRoute from './components/ProtectedRoute'
-
-const Dashboard = lazy(() => import('./pages/Dashboard'))
-const Market = lazy(() => import('./pages/Market'))
-const Portfolio = lazy(() => import('./pages/Portfolio'))
-const Orders = lazy(() => import('./pages/Orders'))
-const Trade = lazy(() => import('./pages/Trade'))
-const Login = lazy(() => import('./pages/Login'))
-const Settings = lazy(() => import('./pages/Settings'))
-const Support = lazy(() => import('./pages/Support'))
-const Notifications = lazy(() => import('./pages/Notifications'))
+import AppRoutes from './routes/AppRoutes'
 
 function PageLoader() {
   return (
@@ -88,28 +76,7 @@ export default function App() {
 
   return (
     <Suspense fallback={<PageLoader />}>
-      <Routes>
-        {/* Public Route */}
-        <Route path="/login" element={!isAuthenticated ? <Login /> : <Navigate to="/" replace />} />
-        
-        {/* Protected Routes */}
-        <Route element={<ProtectedRoute />}>
-          <Route element={<Layout />}>
-            <Route path="/" element={<Dashboard />} />
-            <Route path="/market" element={<Market />} />
-            <Route path="/portfolio" element={<Portfolio />} />
-            <Route path="/orders" element={<Orders />} />
-            <Route path="/trade" element={<Trade />} />
-            <Route path="/trade/:symbol" element={<Trade />} />
-            <Route path="/settings" element={<Settings />} />
-            <Route path="/support" element={<Support />} />
-            <Route path="/notifications" element={<Notifications />} />
-          </Route>
-        </Route>
-
-        {/* Fallback */}
-        <Route path="*" element={<Navigate to="/" replace />} />
-      </Routes>
+      <AppRoutes isAuthenticated={isAuthenticated} />
     </Suspense>
   )
 }

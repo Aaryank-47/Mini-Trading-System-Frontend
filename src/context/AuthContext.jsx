@@ -2,6 +2,7 @@ import React, { createContext, useContext, useState, useEffect, useCallback } fr
 import { useDispatch } from 'react-redux';
 import { setCurrentUser, clearUser } from '../store/userSlice';
 import apiClient, { setAccessToken, clearAccessToken } from '../services/apiClient';
+import { API_ROUTES } from '../api/routes';
 
 const AuthContext = createContext(null);
 
@@ -29,13 +30,13 @@ export const AuthProvider = ({ children }) => {
       try {
         // 1. Attempt silent refresh using HttpOnly cookie
         // No body needed as refresh token is in the cookie
-        const res = await apiClient.post('/users/token/refresh', {});
+        const res = await apiClient.post(API_ROUTES.USERS.REFRESH, {});
         
         const token = res.data.access_token;
         setAccessToken(token);
         
         // 2. Fetch full user profile using the new access token
-        const userRes = await apiClient.get('/users/profile');
+        const userRes = await apiClient.get(API_ROUTES.USERS.PROFILE);
         dispatch(setCurrentUser(userRes.data));
         setIsAuthenticated(true);
         
@@ -65,12 +66,12 @@ export const AuthProvider = ({ children }) => {
 
   const login = async (credentials) => {
     try {
-      const res = await apiClient.post('/users/login', credentials);
+      const res = await apiClient.post(API_ROUTES.USERS.LOGIN, credentials);
       // Access token stored in memory
       setAccessToken(res.data.access_token);
       
       // Fetch full profile
-      const userRes = await apiClient.get('/users/profile');
+      const userRes = await apiClient.get(API_ROUTES.USERS.PROFILE);
       dispatch(setCurrentUser(userRes.data));
       setIsAuthenticated(true);
       return userRes.data;
@@ -82,12 +83,12 @@ export const AuthProvider = ({ children }) => {
 
   const register = async (userData) => {
     try {
-      const res = await apiClient.post('/users/register', userData);
+      const res = await apiClient.post(API_ROUTES.USERS.REGISTER, userData);
       // Access token stored in memory
       setAccessToken(res.data.access_token);
       
       // Fetch profile
-      const userRes = await apiClient.get('/users/profile');
+      const userRes = await apiClient.get(API_ROUTES.USERS.PROFILE);
       dispatch(setCurrentUser(userRes.data));
       setIsAuthenticated(true);
       return userRes.data;
