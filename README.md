@@ -87,7 +87,6 @@ The application will spin up at `http://localhost:5173`.
 ## 👨‍💻 Architects
 
 Proudly engineered, refined, and deployed by:
-- **Aayush** 
 - **Aaryan** 
 
 _Built for the future of decentralized and institutional finance._
