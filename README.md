@@ -1,4 +1,4 @@
-# 🚀 Nexus Institutional Trading Terminal (Frontend)
+# 🚀 Trading Terminal (Frontend)
 
 <div align="center">
   <p>A flagship, ultra-premium cryptocurrency trading dashboard designed with <b>Glassmorphism 3.0</b> and lightning-fast <b>60FPS React DOM Rendering</b> for high-volume traders.</p>
