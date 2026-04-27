@@ -2,11 +2,12 @@ import axios from 'axios';
 import { API_ROUTES } from '../api/routes';
 
 const isLocal = window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1";
-const API_BASE = isLocal 
-  ? "http://localhost:8000" 
-  : "https://mini-trading-system-backend.onrender.com";
+const PROD_API_BASE = "https://mini-trading-system-backend.onrender.com";
+const API_BASE = import.meta.env.VITE_API_BASE_URL || (isLocal ? "/api" : PROD_API_BASE);
 
+console.log(`API Base URL set to: ${API_BASE}`);
 let inMemoryAccessToken = null;
+let inMemoryRefreshToken = null;
 
 export const setAccessToken = (token) => {
   inMemoryAccessToken = token;
@@ -16,8 +17,17 @@ export const getAccessToken = () => {
   return inMemoryAccessToken;
 };
 
+export const setRefreshToken = (token) => {
+  inMemoryRefreshToken = token || null;
+};
+
+export const getRefreshToken = () => {
+  return inMemoryRefreshToken;
+};
+
 export const clearAccessToken = () => {
   inMemoryAccessToken = null;
+  inMemoryRefreshToken = null;
 };
 
 const apiClient = axios.create({
@@ -57,9 +67,11 @@ apiClient.interceptors.response.use(
 
       try {
         // Attempt silent refresh
-        // Note: We don't send the refresh_token in the body.
-        // It relies on the HttpOnly cookie being automatically sent via withCredentials: true.
-        const res = await axios.post(`${API_BASE}${API_ROUTES.USERS.REFRESH}`, {}, {
+        // Prefer HttpOnly cookie; fallback to in-memory refresh token if needed.
+        const refreshToken = getRefreshToken();
+        const refreshBody = refreshToken ? { refresh_token: refreshToken } : {};
+
+        const res = await axios.post(`${API_BASE}${API_ROUTES.USERS.REFRESH}`, refreshBody, {
           withCredentials: true
         });
 

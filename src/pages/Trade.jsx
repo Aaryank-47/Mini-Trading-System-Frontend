@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect, useMemo, useRef } from "react";
 import { useSelector, useDispatch } from "react-redux";
 import { useParams, useNavigate } from "react-router-dom";
 import { setPortfolio, addOrder } from "../store/portfolioSlice";
@@ -83,11 +83,17 @@ export default function Trade() {
   const [side, setSide] = useState("BUY");
   const [qty, setQty] = useState("");
   const [loading, setLoading] = useState(false);
+  const submittingRef = useRef(false);
 
-  // Track Mouse for Glowing Grid Background Effect
-  const [mousePos, setMousePos] = useState({ x: -1000, y: -1000 });
+  // Track mouse with CSS variables to avoid re-render loops in chart-heavy screens.
+  const containerRef = useRef(null);
   const handleMouseMove = (e) => {
-    setMousePos({ x: e.clientX, y: e.clientY });
+    if (!containerRef.current) return;
+    const rect = containerRef.current.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
+    containerRef.current.style.setProperty('--mouse-x', `${x}px`);
+    containerRef.current.style.setProperty('--mouse-y', `${y}px`);
   };
 
   useEffect(() => {
@@ -108,19 +114,27 @@ export default function Trade() {
 
   const intradayData = useMemo(() => generateIntradayData(price), [sel, pPrev]);
 
-  const q = parseFloat(qty) || 0;
+  const q = Math.floor(Number(qty) || 0);
   const total = q * price;
   const hold = portfolio?.holdings?.find((h) => h.symbol === sel);
   const wallet = portfolio?.wallet_balance || 0;
-  const canBuy = side === "BUY" && q > 0 && total <= wallet;
-  const canSell = side === "SELL" && q > 0 && hold && q <= hold.quantity;
+  const hasValidPrice = Number(price) > 0;
+  const canBuy = side === "BUY" && hasValidPrice && q > 0 && total <= wallet;
+  const canSell = side === "SELL" && hasValidPrice && q > 0 && hold && q <= hold.quantity;
   const ok = side === "BUY" ? canBuy : canSell;
   const displayName = symbolNames[sel] || sel;
 
   const submit = async (e) => {
     e.preventDefault();
+    if (submittingRef.current) return;
+    if (!hasValidPrice) {
+      toast.error("Live price is unavailable right now. Please wait for market feed to recover.");
+      return;
+    }
     if (!ok || !user) return;
+    submittingRef.current = true;
     setLoading(true);
+    let orderPlaced = false;
     try {
       const order = await api.placeOrder({
         user_id: user.id,
@@ -128,21 +142,33 @@ export default function Trade() {
         qty: q,
         side,
       });
+      orderPlaced = true;
       dispatch(addOrder({ ...order, symbol_name: symbolNames[sel] || sel }));
       toast.success(`${side} ${q} × ${displayName} (${sel}) @ ${formatCurrency(order.price)}`);
       setQty("");
-      dispatch(setPortfolio(await api.getPortfolio(user.id)));
     } catch (err) {
-      toast.error(err.message);
+      const message = err?.response?.data?.detail || err?.message || "Order placement failed";
+      toast.error(message);
     } finally {
       setLoading(false);
+      submittingRef.current = false;
+    }
+
+    // Refresh portfolio in background so the trade button unlocks immediately.
+    if (orderPlaced) {
+      void api
+        .getPortfolio(user.id)
+        .then((data) => dispatch(setPortfolio(data)))
+        .catch(() => {});
     }
   };
 
   return (
     <div
+      ref={containerRef}
       className="relative w-full min-h-[calc(100vh-60px)] overflow-hidden font-sans pb-16"
       onMouseMove={handleMouseMove}
+      style={{ '--mouse-x': '-1000px', '--mouse-y': '-1000px' }}
     >
       {/* 1. Underlying dim base grid */}
       <div
@@ -164,15 +190,15 @@ export default function Trade() {
             linear-gradient(to bottom, rgba(245, 158, 11, 0.4) 1px, transparent 1px)
           `,
           backgroundSize: "40px 40px",
-          maskImage: `radial-gradient(400px circle at ${mousePos.x}px ${mousePos.y}px, black, transparent)`,
-          WebkitMaskImage: `radial-gradient(400px circle at ${mousePos.x}px ${mousePos.y}px, black, transparent)`,
+          maskImage: `radial-gradient(400px circle at var(--mouse-x) var(--mouse-y), black, transparent)`,
+          WebkitMaskImage: `radial-gradient(400px circle at var(--mouse-x) var(--mouse-y), black, transparent)`,
         }}
       />
       {/* 3. Soft ambient spotlight */}
       <div
         className="fixed inset-0 pointer-events-none z-0 mix-blend-screen min-h-screen"
         style={{
-          background: `radial-gradient(600px circle at ${mousePos.x}px ${mousePos.y}px, rgba(245, 158, 11, 0.08), transparent 40%)`,
+          background: `radial-gradient(600px circle at var(--mouse-x) var(--mouse-y), rgba(245, 158, 11, 0.08), transparent 40%)`,
         }}
       />
 
@@ -298,8 +324,7 @@ export default function Trade() {
                       stroke={up ? "#34D399" : "#EF4444"}
                       strokeWidth={3}
                       fill="url(#chartGrad)"
-                      isAnimationActive={true}
-                      animationDuration={800}
+                      isAnimationActive={false}
                       style={{ filter: "url(#chartGlow)" }}
                       activeDot={{
                         r: 6,
@@ -354,7 +379,7 @@ export default function Trade() {
                     <input
                       type="number"
                       min="0"
-                      step="any"
+                      step="1"
                       value={qty}
                       onChange={(e) => setQty(e.target.value)}
                       placeholder="0.00"

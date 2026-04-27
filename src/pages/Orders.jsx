@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useMemo } from 'react'
+import React, { useEffect, useState, useMemo, useRef } from 'react'
 import { useSelector, useDispatch } from 'react-redux'
 import { setOrders, setOrdersLoaded } from '../store/portfolioSlice'
 import api from '../api'
@@ -22,10 +22,15 @@ export default function Orders() {
   const ordersLoaded = useSelector((s) => s.portfolio.ordersLoaded)
   const [loading, setLoading] = useState(!ordersLoaded)
 
-  // Track Mouse for Glowing Grid Background Effect
-  const [mousePos, setMousePos] = useState({ x: -1000, y: -1000 })
+  // Track mouse with CSS variables to avoid high-frequency rerenders.
+  const containerRef = useRef(null)
   const handleMouseMove = (e) => {
-    setMousePos({ x: e.clientX, y: e.clientY })
+    if (!containerRef.current) return
+    const rect = containerRef.current.getBoundingClientRect()
+    const x = e.clientX - rect.left
+    const y = e.clientY - rect.top
+    containerRef.current.style.setProperty('--mouse-x', `${x}px`)
+    containerRef.current.style.setProperty('--mouse-y', `${y}px`)
   }
 
   useEffect(() => {
@@ -60,8 +65,10 @@ export default function Orders() {
 
   return (
     <div 
+      ref={containerRef}
       className="relative w-full min-h-[calc(100vh-60px)] overflow-hidden font-sans pb-16" 
       onMouseMove={handleMouseMove}
+      style={{ '--mouse-x': '-1000px', '--mouse-y': '-1000px' }}
     >
       {/* --- Interactive Glowing Grid Background --- */}
       {/* 1. Underlying dim base grid */}
@@ -84,15 +91,15 @@ export default function Orders() {
             linear-gradient(to bottom, rgba(139, 92, 246, 0.4) 1px, transparent 1px)
           `,
           backgroundSize: '40px 40px',
-          maskImage: `radial-gradient(350px circle at ${mousePos.x}px ${mousePos.y}px, black, transparent)`,
-          WebkitMaskImage: `radial-gradient(350px circle at ${mousePos.x}px ${mousePos.y}px, black, transparent)`
+          maskImage: `radial-gradient(350px circle at var(--mouse-x) var(--mouse-y), black, transparent)`,
+          WebkitMaskImage: `radial-gradient(350px circle at var(--mouse-x) var(--mouse-y), black, transparent)`
         }}
       />
       {/* 3. Soft ambient spotlight */}
       <div 
         className="absolute inset-0 pointer-events-none z-0 mix-blend-screen min-h-screen"
         style={{
-          background: `radial-gradient(500px circle at ${mousePos.x}px ${mousePos.y}px, rgba(139, 92, 246, 0.08), transparent 40%)`,
+          background: `radial-gradient(500px circle at var(--mouse-x) var(--mouse-y), rgba(139, 92, 246, 0.08), transparent 40%)`,
         }}
       />
 
@@ -173,7 +180,7 @@ export default function Orders() {
                       contentStyle={{ backgroundColor: '#0A0A0A', border: '1px solid #333', borderRadius: '8px' }}
                       itemStyle={{ color: '#fff', fontWeight: 'bold' }}
                     />
-                    <Area type="monotone" dataKey="vol" stroke="#8B5CF6" strokeWidth={3} fill="url(#volGrad)" isAnimationActive={true} animationDuration={1500} style={{ filter: 'url(#purpleGlow)' }} activeDot={{ r: 6, fill: '#fff', stroke: '#8B5CF6', strokeWidth: 2 }} />
+                    <Area type="monotone" dataKey="vol" stroke="#8B5CF6" strokeWidth={3} fill="url(#volGrad)" isAnimationActive={false} style={{ filter: 'url(#purpleGlow)' }} activeDot={{ r: 6, fill: '#fff', stroke: '#8B5CF6', strokeWidth: 2 }} />
                   </AreaChart>
                 </ResponsiveContainer>
              </div>

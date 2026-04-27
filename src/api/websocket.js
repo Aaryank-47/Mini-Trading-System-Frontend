@@ -1,9 +1,8 @@
 import { getAccessToken } from '../services/apiClient';
 
 const isLocal = window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1";
-const WS_BASE = isLocal 
-  ? 'ws://localhost:8000' 
-  : 'wss://mini-trading-system-backend.onrender.com';
+const localWsBase = `${window.location.protocol === 'https:' ? 'wss' : 'ws'}://${window.location.host}`;
+const WS_BASE = import.meta.env.VITE_WS_BASE_URL || (isLocal ? localWsBase : 'wss://mini-trading-system-backend.onrender.com');
 
 class WebSocketManager {
   constructor() {

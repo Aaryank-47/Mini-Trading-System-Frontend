@@ -67,7 +67,8 @@ export default function Login() {
         },
       });
     } catch (err) {
-      toast.error(err.message, {
+      const message = err?.response?.data?.detail || err?.message || 'Registration failed';
+      toast.error(message, {
         style: {
           background: "#18181b",
           color: "#ef4444",
@@ -94,7 +95,8 @@ export default function Login() {
         },
       });
     } catch (err) {
-      toast.error(err.message, {
+      const message = err?.response?.data?.detail || err?.message || 'Login failed';
+      toast.error(message, {
         style: {
           background: "#18181b",
           color: "#ef4444",
@@ -113,7 +115,7 @@ export default function Login() {
         <div className="absolute top-[-10%] left-[-10%] w-[50vw] h-[50vw] rounded-full bg-emerald-500/15 blur-[120px] mix-blend-screen" />
         <div className="absolute bottom-[-10%] right-[-10%] w-[50vw] h-[50vw] rounded-full bg-blue-600/15 blur-[120px] mix-blend-screen" />
         <div className="absolute top-[20%] right-[20%] w-[30vw] h-[30vw] rounded-full bg-indigo-500/10 blur-[100px] mix-blend-screen" />
-        <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-[0.03] mix-blend-overlay"></div>
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_20%_20%,rgba(255,255,255,0.04),transparent_45%)] opacity-60 mix-blend-overlay"></div>
       </div>
 
       {/* LEFT PANEL */}

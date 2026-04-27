@@ -158,7 +158,7 @@ export default function Market() {
                                   </feMerge>
                                 </filter>
                               </defs>
-                              <Area type="monotone" dataKey="v" stroke={chartColor} strokeWidth={2.5} fill={`url(#g-${i})`} isAnimationActive={true} animationDuration={1000} style={{ filter: 'url(#glow)' }} />
+                              <Area type="monotone" dataKey="v" stroke={chartColor} strokeWidth={2.5} fill={`url(#g-${i})`} isAnimationActive={false} style={{ filter: 'url(#glow)' }} />
                             </AreaChart>
                           </ResponsiveContainer>
                         </div>

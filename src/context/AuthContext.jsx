@@ -1,10 +1,22 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { useDispatch } from 'react-redux';
 import { setCurrentUser, clearUser } from '../store/userSlice';
-import apiClient, { setAccessToken, clearAccessToken } from '../services/apiClient';
+import apiClient, {
+  setAccessToken,
+  setRefreshToken,
+  getRefreshToken,
+  clearAccessToken,
+} from '../services/apiClient';
 import { API_ROUTES } from '../api/routes';
 
 const AuthContext = createContext(null);
+const SESSION_HINT_KEY = 'ts.hasSession';
+
+const toAuthError = (error, fallbackMessage) => {
+  const detail = error?.response?.data?.detail;
+  const message = typeof detail === 'string' && detail.trim() ? detail : fallbackMessage;
+  return new Error(message);
+};
 
 export const AuthProvider = ({ children }) => {
   const [isInitializing, setIsInitializing] = useState(true);
@@ -15,6 +27,7 @@ export const AuthProvider = ({ children }) => {
     setAccessToken(token);
     dispatch(setCurrentUser(user));
     setIsAuthenticated(true);
+    localStorage.setItem(SESSION_HINT_KEY, '1');
   }, [dispatch]);
 
   const handleLogout = useCallback(async () => {
@@ -27,13 +40,26 @@ export const AuthProvider = ({ children }) => {
       clearAccessToken();
       setIsAuthenticated(false);
       dispatch(clearUser());
+      localStorage.removeItem(SESSION_HINT_KEY);
     }
   }, [dispatch]);
 
   useEffect(() => {
     const initAuth = async () => {
+      const hasSessionHint = localStorage.getItem(SESSION_HINT_KEY) === '1';
+
+      // Avoid noisy refresh requests for first-time visitors.
+      if (!hasSessionHint && !getRefreshToken()) {
+        setIsInitializing(false);
+        return;
+      }
+
       try {
-        const res = await apiClient.post(API_ROUTES.USERS.REFRESH, {});
+        const refreshToken = getRefreshToken();
+        const res = await apiClient.post(
+          API_ROUTES.USERS.REFRESH,
+          refreshToken ? { refresh_token: refreshToken } : {}
+        );
 
         applySession(res.data.access_token, {
           id: res.data.user_id,
@@ -47,6 +73,7 @@ export const AuthProvider = ({ children }) => {
         clearAccessToken();
         setIsAuthenticated(false);
         dispatch(clearUser());
+        localStorage.removeItem(SESSION_HINT_KEY);
       } finally {
         setIsInitializing(false);
       }
@@ -65,6 +92,11 @@ export const AuthProvider = ({ children }) => {
   const login = async (credentials) => {
     try {
       const res = await apiClient.post(API_ROUTES.USERS.LOGIN, credentials);
+      console.log('Login data : ',res.data);
+      if (res.data.refresh_token) {
+        setRefreshToken(res.data.refresh_token);
+      }
+
       const user = {
         id: res.data.user_id,
         name: res.data.name || 'Trader',
@@ -75,13 +107,17 @@ export const AuthProvider = ({ children }) => {
       return user;
     } catch (error) {
       setIsAuthenticated(false);
-      throw error;
+      throw toAuthError(error, 'Login failed. Please verify your email and password.');
     }
   };
 
   const register = async (userData) => {
     try {
       const res = await apiClient.post(API_ROUTES.USERS.REGISTER, userData);
+      if (res.data.refresh_token) {
+        setRefreshToken(res.data.refresh_token);
+      }
+
       const user = {
         id: res.data.user_id,
         name: res.data.name || userData.name || 'Trader',
@@ -92,7 +128,7 @@ export const AuthProvider = ({ children }) => {
       return user;
     } catch (error) {
       setIsAuthenticated(false);
-      throw error;
+      throw toAuthError(error, 'Registration failed. Please check your details and try again.');
     }
   };
 

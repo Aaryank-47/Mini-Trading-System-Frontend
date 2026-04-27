@@ -1,6 +1,39 @@
 import apiClient from '../services/apiClient';
 import { API_ROUTES } from './routes';
 
+let marketPricesCircuitOpenUntil = 0;
+const marketPriceFallback = {};
+
+const generateFallbackPrice = (symbol) => {
+  const existing = marketPriceFallback[symbol];
+  if (typeof existing === 'number' && existing > 0) {
+    const next = Math.max(1, existing * (1 + (Math.random() - 0.5) * 0.01));
+    marketPriceFallback[symbol] = Number(next.toFixed(2));
+    return marketPriceFallback[symbol];
+  }
+
+  const seed = symbol
+    .split('')
+    .reduce((acc, ch) => acc + ch.charCodeAt(0), 0);
+  const base = 100 + (seed % 5000);
+  marketPriceFallback[symbol] = Number(base.toFixed(2));
+  return marketPriceFallback[symbol];
+};
+
+const getFallbackPrices = async () => {
+  const symbolsRes = await apiClient.get(API_ROUTES.MARKET.SYMBOLS);
+  const symbols = symbolsRes?.data?.symbols || [];
+  const fallback = {};
+
+  for (const item of symbols) {
+    if (item?.symbol) {
+      fallback[item.symbol] = generateFallbackPrice(item.symbol);
+    }
+  }
+
+  return fallback;
+};
+
 const api = {
   // ── Auth & Users ─────────────────────────────
   createUser: async (data) => {
@@ -27,8 +60,18 @@ const api = {
 
   // ── Market ─────────────────────────────────
   getPrices: async () => {
-    const res = await apiClient.get(API_ROUTES.MARKET.PRICES);
-    return res.data;
+    const now = Date.now();
+    if (now < marketPricesCircuitOpenUntil) {
+      return getFallbackPrices();
+    }
+
+    try {
+      const res = await apiClient.get(API_ROUTES.MARKET.PRICES);
+      return res.data;
+    } catch (error) {
+      marketPricesCircuitOpenUntil = Date.now() + 60_000;
+      return getFallbackPrices();
+    }
   },
 
   getSymbols: async () => {

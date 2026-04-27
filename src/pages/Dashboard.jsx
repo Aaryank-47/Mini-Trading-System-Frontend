@@ -668,8 +668,7 @@ export default function Dashboard() {
                                   stroke={row.stat === 'Completed' && row.type !== 'Sell' ? '#34D399' : '#EF4444'} 
                                   strokeWidth={2} 
                                   fill={`url(#gradient-${i})`}
-                                  isAnimationActive={true}
-                                  animationDuration={1500}
+                                  isAnimationActive={false}
                                 />
                               </AreaChart>
                             </ResponsiveContainer>
