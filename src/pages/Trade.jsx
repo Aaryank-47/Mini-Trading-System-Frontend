@@ -487,13 +487,13 @@ export default function Trade() {
 
           {/* Instruments Library - Left for desktop, bottom for mobile */}
           <div className="lg:col-span-3 lg:order-1 order-2 space-y-6">
-            <div className="relative overflow-hidden rounded-[20px] border border-[rgba(255,255,255,0.05)] bg-[rgba(10,10,12,0.8)] backdrop-blur-2xl shadow-[0_0_40px_rgba(0,0,0,0.5)] flex flex-col h-[650px] lg:h-auto">
+            <div className="relative overflow-hidden rounded-[20px] border border-[rgba(255,255,255,0.05)] bg-[rgba(10,10,12,0.8)] backdrop-blur-2xl shadow-[0_0_40px_rgba(0,0,0,0.5)] flex flex-col h-[650px] lg:h-auto lg:max-h-[880px]">
               <div className="p-5 border-b border-[rgba(255,255,255,0.05)] bg-[rgba(0,0,0,0.2)]">
                 <span className="text-[12px] font-black text-zinc-400 uppercase tracking-widest flex items-center gap-2">
                   <Zap size={14} className="text-[#F59E0B]" /> Market Liquidity
                 </span>
               </div>
-              <div className="divide-y divide-[rgba(255,255,255,0.02)] overflow-y-auto scrollbar-hide py-2 flex-col">
+              <div className="divide-y divide-[rgba(255,255,255,0.02)] overflow-y-auto py-2 flex-col flex-1">
                 {Object.entries(prices).map(([s, p]) => {
                   const c = prev[s] ? ((p - prev[s]) / prev[s]) * 100 : 0;
                   const isUp = c >= 0;
@@ -507,7 +507,7 @@ export default function Trade() {
                           replace: true,
                         });
                       }}
-                      className="w-full flex items-center justify-between px-5 py-4 transition-all duration-300 text-left group hover:bg-[rgba(255,255,255,0.02)]"
+                      className="w-full flex items-center justify-between px-5 py-4 transition-all duration-300 text-left group hover:bg-[rgba(255,255,255,0.02)] relative"
                       style={{
                         background: isActive
                           ? "rgba(245, 158, 11, 0.05)"

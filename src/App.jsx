@@ -69,6 +69,11 @@ export default function App() {
         created_at: data.created_at ?? data.timestamp,
         symbol_name: data.symbol_name,
       }))
+      // Immediately refresh balance and portfolio in Redux store
+      if (user && user.id) {
+        api.getBalance(user.id).then(res => dispatch(setBalance(res.balance))).catch(() => {})
+        api.getPortfolio(user.id).then(res => dispatch(setPortfolio(res))).catch(() => {})
+      }
     })
 
     const unsubConn = wsManager.on('connection', (data) => {

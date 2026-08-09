@@ -15,6 +15,9 @@ const portfolioSlice = createSlice({
     setPortfolio: (state, action) => {
       state.portfolio = action.payload
       state.portfolioLoaded = true
+      if (action.payload && typeof action.payload === 'object' && 'wallet_balance' in action.payload) {
+        state.balance = action.payload.wallet_balance
+      }
     },
     setOrders: (state, action) => {
       state.orders = action.payload
